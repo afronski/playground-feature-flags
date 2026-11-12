@@ -319,6 +319,7 @@ config/holdout.json   the holdout group (stand-in for the data team's table)
 scripts/provision.ts  sets up Unleash (idempotent, also resets the demo)
 scripts/teardown.ts   removes it again
 scripts/bigquery-setup.ts  creates dataset and table
+TODO.md               what comes next
 ```
 
 The Admin API client and the change-request guard come from the [FeatureOps workshop](https://github.com/Unleash/workshop-featureops-for-platform-engineers) provisioner.
