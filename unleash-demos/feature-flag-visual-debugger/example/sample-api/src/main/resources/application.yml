@@ -1,0 +1,13 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/sampleapp}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
+
+unleash:
+  api-url: ${UNLEASH_API_URL:http://localhost:4242/api}
+  api-token: ${UNLEASH_API_TOKEN:default:development.unleash-insecure-backend-api-token}
+  app-name: sample-api

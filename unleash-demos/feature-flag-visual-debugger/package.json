@@ -1,0 +1,11 @@
+{
+  "name": "flag-debugger",
+  "private": true,
+  "workspaces": [
+    "packages/client",
+    "packages/server"
+  ],
+  "devDependencies": {
+    "concurrently": "~9.2.1"
+  }
+}
