@@ -1,0 +1,29 @@
+# Node.js dependencies:
+node_modules/
+
+# Build output:
+.astro/
+dist/
+
+# IDE and AI-related artefacts:
+.idea/
+*.iml
+.vscode/
+.claude/
+CLAUDE.md
+
+# OS-specific files:
+.DS_Store
+Thumbs.db
+
+# Environment files:
+.env
+.env.local
+
+# Logs:
+*.log
+*.tsbuildinfo
+
+# OS
+.DS_Store
+Thumbs.db
