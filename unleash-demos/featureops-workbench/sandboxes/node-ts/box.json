@@ -1,0 +1,8 @@
+{
+  "image": "workbench-sandbox-node-ts",
+  "network": "workbench",
+  "memory": 268435456,
+  "timeout": 10,
+  "writable": true,
+  "volume": "%s:/sandbox:rw"
+}

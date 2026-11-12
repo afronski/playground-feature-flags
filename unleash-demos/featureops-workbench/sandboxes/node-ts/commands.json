@@ -1,0 +1,13 @@
+{
+  "run": {
+    "engine": "docker",
+    "entry": "main.ts",
+    "steps": [
+      {
+        "box": "node-ts",
+        "command": ["tsx", "main.ts"],
+        "timeout": 10
+      }
+    ]
+  }
+}

@@ -1,0 +1,11 @@
+---
+// Empty — TOC is rendered in the left sidebar instead.
+// Mobile TOC is handled by MobileTableOfContents in the default layout.
+import MobileTableOfContents from 'virtual:starlight/components/MobileTableOfContents';
+---
+
+{Astro.locals.starlightRoute.toc && (
+  <div class="lg:sl-hidden">
+    <MobileTableOfContents />
+  </div>
+)}

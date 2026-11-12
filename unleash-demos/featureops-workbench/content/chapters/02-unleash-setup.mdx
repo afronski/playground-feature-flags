@@ -1,0 +1,73 @@
+---
+title: "Setting Up Unleash"
+description: "Log in to Unleash, create your first project and feature flag, and generate an API token."
+---
+
+import { SecretVault } from "@components/SecretVault";
+
+The Unleash admin UI is running in the panel on the right. It's the same open-source Unleash you'd deploy in production — not a simulation.
+
+## Step 1: Log In
+
+Use the default credentials:
+
+| Field    | Value           |
+|----------|-----------------|
+| Username | `admin`         |
+| Password | `unleash4all`   |
+
+## Step 2: Explore the Default Project
+
+After logging in, you'll land on the **default** project. Unleash comes with:
+- A `default` project
+- A `development` environment
+
+These are enough for our workbench. You don't need to create a new project — the default one is fine.
+
+## Step 3: Create Your First Feature Flag
+
+1. Click **"New feature flag"** (or the `+` button).
+2. Set the **name** to: `lightbulb-colour`
+3. Leave the type as **Release**.
+4. Add a description if you like (optional).
+5. Scroll down and enable **"Impression data"** — this is important! The flag probe instrument relies on impression events to visualize flag evaluations in real time.
+6. Click **"Create feature flag"**.
+
+You'll see the flag in a **disabled** state. That's expected — we'll toggle it in the next chapter.
+
+:::tip[Why "lightbulb-colour"?]
+This name matches what the lightbulb probe instrument listens for by default. When you evaluate this flag, the probe will react. You can always change the probe's filter later.
+:::
+
+## Step 4: Generate a Server-Side API Token
+
+The code cells in this workbench need a token to authenticate with Unleash.
+
+1. Go to **Configure** → **API access** (in the left sidebar).
+2. Click **"New API token"**.
+3. Set:
+   - **Token name**: `workbench`
+   - **Token type**: **Server**
+   - **Project**: `default` (or `*` for all projects)
+   - **Environment**: `development`
+4. Click **"Create token"**.
+5. **Copy the generated token** — you'll need it in the next step.
+
+## Step 5: Save Your Token
+
+Paste the API token into the vault below. This stores it in your browser's session storage and makes it available to all code cells on this site.
+
+<SecretVault client:visible />
+
+:::caution[Session storage only]
+The token is stored in your browser's `sessionStorage`. It will be cleared when you close this tab. If you refresh the page, it persists within the same tab session. You can always re-paste it.
+:::
+
+## What you've learned
+
+- **Projects** organize feature flags by team or domain.
+- **Environments** (development, staging, production) let you control flags independently per deploy target.
+- **Feature flags** are the core primitive — a named toggle with per-environment state.
+- **API tokens** are scoped to a project and environment, giving SDKs the minimum access they need.
+
+Next up: we'll use that token to evaluate the `lightbulb-colour` flag from code.

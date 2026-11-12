@@ -1,0 +1,151 @@
+---
+interface Props {
+  code: string;
+  sandbox?: string;
+  id?: string;
+}
+
+const { code, sandbox = "node-ts", id: propId } = Astro.props;
+const id = propId ?? `repl-${Math.random().toString(36).slice(2, 8)}`;
+const templateId = `tpl-${id}`;
+---
+
+<div class="code-cell not-content">
+  <div id={id} class="cm-host" data-code={code} data-cell-id={id}></div>
+  <script id={templateId} type="text/plain"></script>
+  <codapi-snippet
+    sandbox={sandbox}
+    command="run"
+    template={`#${templateId}`}
+    editor="external"
+    selector={`#${id}`}
+    url="/codapi/v1"
+  >
+  </codapi-snippet>
+</div>
+
+<script>
+  import { EditorView, lineNumbers, keymap } from "@codemirror/view";
+  import { EditorState } from "@codemirror/state";
+  import { javascript } from "@codemirror/lang-javascript";
+  import { oneDark } from "@codemirror/theme-one-dark";
+  import { defaultKeymap, indentWithTab } from "@codemirror/commands";
+  import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+
+  function buildTemplate(): string {
+    const token = sessionStorage.getItem("workbench:unleash-token") || "";
+    return `import { initialize, type Unleash } from "unleash-client";
+import { WebSocket } from "ws";
+import { once, EventEmitter } from "node:events";
+
+(async () => {
+const UNLEASH_URL = "http://unleash:4242/unleash/api";
+const UNLEASH_API_TOKEN = ${JSON.stringify(token)};
+
+if (!UNLEASH_API_TOKEN) {
+  console.error("Error: No Unleash API token configured. Paste your token into the Secret Vault first.");
+  process.exit(1);
+}
+
+const unleash: Unleash = initialize({
+  url: UNLEASH_URL,
+  appName: "workbench-repl",
+  customHeaders: { Authorization: UNLEASH_API_TOKEN },
+  refreshInterval: 1,
+});
+
+const bus = new WebSocket("ws://impression-bus:3001");
+
+unleash.on("impression", (event) => {
+  if (bus.readyState === WebSocket.OPEN) {
+    bus.send(
+      JSON.stringify({
+        type: "impression",
+        flag: event.featureName,
+        enabled: event.enabled,
+        variant: event.variant,
+        context: event.context,
+        timestamp: new Date().toISOString(),
+        source: "repl",
+      })
+    );
+  }
+});
+
+const readyTimeout = setTimeout(() => {
+  console.error("Error: Timed out waiting for Unleash SDK to become ready.");
+  process.exit(1);
+}, 5000);
+
+await once(unleash as unknown as EventEmitter, "ready");
+clearTimeout(readyTimeout);
+
+##CODE##
+
+unleash.destroy();
+bus.close();
+})();`;
+  }
+
+  // Inject template into all template script elements on this page
+  function injectTemplates() {
+    const tpl = buildTemplate();
+    document.querySelectorAll<HTMLScriptElement>('script[id^="tpl-repl-"]').forEach((el) => {
+      el.textContent = tpl;
+    });
+  }
+
+  // Inject on load and whenever token changes
+  injectTemplates();
+  window.addEventListener("workbench:token-updated", injectTemplates);
+
+  const compactTheme = EditorView.theme({
+    ".cm-line": { lineHeight: "1.4", marginTop: "0" },
+    ".cm-gutterElement": { lineHeight: "1.4" },
+    ".cm-gutters": { paddingTop: "0.2rem" },
+  });
+
+  document.querySelectorAll<HTMLElement>('.cm-host').forEach((el) => {
+    if (el.dataset.initialized) return;
+    el.dataset.initialized = 'true';
+
+    const cellId = el.dataset.cellId || el.id;
+    const storageKey = `workbench:cell:${cellId}`;
+    const defaultCode = el.dataset.code || '';
+
+    const savedCode = sessionStorage.getItem(storageKey);
+    const initialCode = savedCode ?? defaultCode;
+
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: initialCode,
+        extensions: [
+          lineNumbers(),
+          javascript({ typescript: true }),
+          oneDark,
+          compactTheme,
+          syntaxHighlighting(defaultHighlightStyle),
+          keymap.of([indentWithTab, ...defaultKeymap]),
+          EditorView.lineWrapping,
+          EditorView.contentAttributes.of({
+            "data-gramm": "false",
+            "data-gramm_editor": "false",
+            "data-enable-grammarly": "false",
+            "spellcheck": "false",
+          }),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              sessionStorage.setItem(storageKey, update.state.doc.toString());
+            }
+          }),
+        ],
+      }),
+      parent: el,
+    });
+
+    Object.defineProperty(el, 'textContent', {
+      get() { return view.state.doc.toString(); },
+      configurable: true,
+    });
+  });
+</script>

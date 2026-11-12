@@ -1,0 +1,9 @@
+{
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "services/workshop-site",
+    "services/impression-bus",
+    "content/examples/*"
+  ]
+}

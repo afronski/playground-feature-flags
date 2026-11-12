@@ -1,0 +1,224 @@
+---
+import config from 'virtual:starlight/user-config';
+
+import LanguageSelect from 'virtual:starlight/components/LanguageSelect';
+import Search from 'virtual:starlight/components/Search';
+import SiteTitle from 'virtual:starlight/components/SiteTitle';
+import SocialIcons from 'virtual:starlight/components/SocialIcons';
+import ThemeSelect from 'virtual:starlight/components/ThemeSelect';
+
+const shouldRenderSearch =
+  config.pagefind || config.components.Search !== '@astrojs/starlight/components/Search.astro';
+
+const { entry } = Astro.locals.starlightRoute ?? {};
+
+const isChapter = entry?.slug?.startsWith('chapters/');
+const chapterTitle = isChapter ? entry.data.title : null;
+---
+
+<div class="header sl-flex">
+  <div class="header-left sl-flex">
+    <button
+      type="button"
+      class="sidebar-toggle sl-flex"
+      aria-label="Toggle sidebar"
+      aria-expanded="true"
+      id="sidebar-toggle-btn"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="3" y1="6" x2="21" y2="6" />
+        <line x1="3" y1="12" x2="21" y2="12" />
+        <line x1="3" y1="18" x2="21" y2="18" />
+      </svg>
+    </button>
+    <div class="title-wrapper sl-flex">
+      <SiteTitle />
+    </div>
+  </div>
+
+  {chapterTitle && (
+    <div class="header-breadcrumb" id="header-breadcrumb">
+      <span class="breadcrumb-label">Chapter:</span>
+      <span class="breadcrumb-value">{chapterTitle}</span>
+      <span class="breadcrumb-sep" id="breadcrumb-sep">&rarr;</span>
+      <span class="breadcrumb-label" id="breadcrumb-section-label">Section:</span>
+      <span class="breadcrumb-value" id="breadcrumb-section-value"></span>
+    </div>
+  )}
+
+  <div class="header-right sl-flex print:hidden">
+    {shouldRenderSearch && <Search />}
+    <div class="sl-hidden md:sl-flex print:hidden right-group">
+      <div class="sl-flex social-icons">
+        <SocialIcons />
+      </div>
+      <ThemeSelect />
+      <LanguageSelect />
+    </div>
+  </div>
+</div>
+
+<script is:inline>
+document.addEventListener('DOMContentLoaded', function() {
+  // --- Sidebar toggle ---
+  var btn = document.getElementById('sidebar-toggle-btn');
+  if (!btn) return;
+
+  var sidebar = document.querySelector('nav.sidebar');
+  var mainFrame = document.querySelector('.main-frame');
+  if (!sidebar) return;
+
+  var collapsed = sessionStorage.getItem('workbench:sidebar-collapsed') === 'true';
+  if (collapsed) {
+    sidebar.classList.add('sidebar-collapsed');
+    if (mainFrame) mainFrame.classList.add('sidebar-collapsed');
+    btn.setAttribute('aria-expanded', 'false');
+  }
+
+  btn.addEventListener('click', function() {
+    var isCollapsed = sidebar.classList.toggle('sidebar-collapsed');
+    if (mainFrame) mainFrame.classList.toggle('sidebar-collapsed');
+    btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+    sessionStorage.setItem('workbench:sidebar-collapsed', isCollapsed ? 'true' : 'false');
+  });
+
+  // --- Scroll spy for breadcrumb section ---
+  var sectionValue = document.getElementById('breadcrumb-section-value');
+  var sectionLabel = document.getElementById('breadcrumb-section-label');
+  var sep = document.getElementById('breadcrumb-sep');
+  if (!sectionValue) return;
+
+  // Find the scrollable content pane
+  var scrollEl = document.querySelector('.split-content-inner') || document.querySelector('.main-pane');
+  if (!scrollEl) return;
+
+  var headings = scrollEl.querySelectorAll('h2[id], h3[id]');
+  if (headings.length === 0) {
+    if (sep) sep.style.display = 'none';
+    if (sectionLabel) sectionLabel.style.display = 'none';
+    return;
+  }
+
+  function updateSection() {
+    var current = '';
+    for (var i = 0; i < headings.length; i++) {
+      var rect = headings[i].getBoundingClientRect();
+      if (rect.top <= 120) {
+        current = headings[i].textContent || '';
+      }
+    }
+    sectionValue.textContent = current;
+    var show = current.length > 0;
+    if (sep) sep.style.display = show ? '' : 'none';
+    if (sectionLabel) sectionLabel.style.display = show ? '' : 'none';
+  }
+
+  scrollEl.addEventListener('scroll', updateSection, { passive: true });
+  window.addEventListener('scroll', updateSection, { passive: true });
+  updateSection();
+});
+</script>
+
+<style>
+  .header {
+    gap: var(--sl-nav-gap);
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+  }
+
+  .header-left {
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+    flex-shrink: 0;
+  }
+
+  .sidebar-toggle {
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    color: var(--sl-color-gray-2);
+    cursor: pointer;
+    padding: 0.375rem;
+    border-radius: 4px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+
+  .sidebar-toggle:hover {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-white);
+  }
+
+  .title-wrapper {
+    overflow: clip;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    min-width: 0;
+  }
+
+  .header-breadcrumb {
+    flex: 1;
+    min-width: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    gap: 0.375rem;
+    overflow: hidden;
+  }
+
+  .breadcrumb-label {
+    font-family: "JetBrains Mono", monospace;
+    font-size: 0.625rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--sl-color-text-accent);
+    flex-shrink: 0;
+  }
+
+  .breadcrumb-value {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--sl-color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .breadcrumb-sep {
+    color: var(--sl-color-gray-3);
+    font-size: 0.6875rem;
+    flex-shrink: 0;
+  }
+
+  .header-right {
+    align-items: center;
+    gap: var(--sl-nav-gap);
+    flex-shrink: 0;
+  }
+
+  .right-group,
+  .social-icons {
+    gap: 1rem;
+    align-items: center;
+  }
+  .social-icons::after {
+    content: '';
+    height: 2rem;
+    border-inline-end: 1px solid var(--sl-color-gray-5);
+  }
+
+  @media (min-width: 50rem) {
+    .header {
+      display: flex;
+      align-items: center;
+    }
+
+    .header-breadcrumb {
+      display: flex;
+    }
+  }
+</style>

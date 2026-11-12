@@ -1,0 +1,81 @@
+---
+interface Props {
+  code: string;
+  sandbox?: string;
+  id?: string;
+}
+
+const { code, sandbox = "node-lens", id: propId } = Astro.props;
+const id = propId ?? `lens-${Math.random().toString(36).slice(2, 8)}`;
+---
+
+<div class="code-cell not-content">
+  <div id={id} class="cm-host" data-code={code} data-cell-id={id}></div>
+  <codapi-snippet
+    sandbox={sandbox}
+    command="apply"
+    editor="external"
+    selector={`#${id}`}
+    url="/codapi/v1"
+  >
+  </codapi-snippet>
+</div>
+
+<script>
+  import { EditorView, lineNumbers, keymap } from "@codemirror/view";
+  import { EditorState } from "@codemirror/state";
+  import { javascript } from "@codemirror/lang-javascript";
+  import { oneDark } from "@codemirror/theme-one-dark";
+  import { defaultKeymap, indentWithTab } from "@codemirror/commands";
+  import { syntaxHighlighting, defaultHighlightStyle } from "@codemirror/language";
+
+  document.querySelectorAll<HTMLElement>('.cm-host').forEach((el) => {
+    if (el.dataset.initialized) return;
+    el.dataset.initialized = 'true';
+
+    const cellId = el.dataset.cellId || el.id;
+    const storageKey = `workbench:cell:${cellId}`;
+    const defaultCode = el.dataset.code || '';
+
+    const savedCode = sessionStorage.getItem(storageKey);
+    const initialCode = savedCode ?? defaultCode;
+
+    const compactTheme = EditorView.theme({
+      ".cm-line": { lineHeight: "1.4", marginTop: "0" },
+      ".cm-gutterElement": { lineHeight: "1.4" },
+      ".cm-gutters": { paddingTop: "0.2rem" },
+    });
+
+    const view = new EditorView({
+      state: EditorState.create({
+        doc: initialCode,
+        extensions: [
+          lineNumbers(),
+          javascript({ typescript: true }),
+          oneDark,
+          compactTheme,
+          syntaxHighlighting(defaultHighlightStyle),
+          keymap.of([indentWithTab, ...defaultKeymap]),
+          EditorView.lineWrapping,
+          EditorView.contentAttributes.of({
+            "data-gramm": "false",
+            "data-gramm_editor": "false",
+            "data-enable-grammarly": "false",
+            "spellcheck": "false",
+          }),
+          EditorView.updateListener.of((update) => {
+            if (update.docChanged) {
+              sessionStorage.setItem(storageKey, update.state.doc.toString());
+            }
+          }),
+        ],
+      }),
+      parent: el,
+    });
+
+    Object.defineProperty(el, 'textContent', {
+      get() { return view.state.doc.toString(); },
+      configurable: true,
+    });
+  });
+</script>

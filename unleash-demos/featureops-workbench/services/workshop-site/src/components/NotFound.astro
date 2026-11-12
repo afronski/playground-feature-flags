@@ -1,0 +1,59 @@
+---
+// Custom 404 page override for Starlight
+---
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>404 — Page Not Found</title>
+    <style>
+      @font-face {
+        font-family: "Sen";
+        src: url("/fonts/sen-latin.woff2") format("woff2");
+        font-weight: 400 800;
+        font-display: swap;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        font-family: "Sen", system-ui, sans-serif;
+        background: var(--bg, #0F1A1D);
+        color: var(--fg, #E8ECEE);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        text-align: center;
+      }
+      @media (prefers-color-scheme: light) {
+        body { --bg: #FFFFFF; --fg: #1A1A1A; }
+        .code { color: #2A9D8F; }
+      }
+      .container { max-width: 480px; padding: 2rem; }
+      .code {
+        font-size: 6rem;
+        font-weight: 800;
+        color: #4FD1C5;
+        line-height: 1;
+      }
+      h1 { font-size: 1.5rem; margin: 1rem 0 0.5rem; }
+      p { color: #8B9DA4; line-height: 1.6; }
+      a {
+        color: #6C65E5;
+        text-decoration: none;
+        font-weight: 600;
+      }
+      a:hover { color: #5B54D4; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="code">404</div>
+      <h1>Page Not Found</h1>
+      <p>The page you're looking for doesn't exist or has been moved.</p>
+      <p style="margin-top: 1.5rem;">
+        <a href="/">Back to the Workbench</a>
+      </p>
+    </div>
+  </body>
+</html>

@@ -1,0 +1,117 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks:
+      - workbench
+
+  unleash:
+    image: unleashorg/unleash-server:latest
+    environment:
+      DATABASE_HOST: ${DATABASE_HOST}
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      DATABASE_SCHEMA: ${DATABASE_SCHEMA}
+      DATABASE_SSL: ${DATABASE_SSL}
+      BASE_URI_PATH: /unleash
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:4242/unleash/health || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+    networks:
+      - workbench
+
+  impression-bus:
+    build:
+      context: ./services/impression-bus
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3001 || exit 0"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - workbench
+
+  express-api:
+    build:
+      context: ./content/examples/express-api
+    environment:
+      UNLEASH_URL: http://unleash:4242/unleash/api
+      UNLEASH_API_TOKEN: ${UNLEASH_API_TOKEN:-}
+    volumes:
+      - lens-fragments:/app/src/fragments
+    depends_on:
+      unleash:
+        condition: service_healthy
+      impression-bus:
+        condition: service_started
+    networks:
+      - workbench
+
+  workshop-site:
+    build:
+      context: .
+      dockerfile: services/workshop-site/Dockerfile
+    networks:
+      - workbench
+
+  codapi-server:
+    build:
+      context: ./codapi
+    environment:
+      TMPDIR: /tmp/codapi
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:rw
+      - ./codapi/codapi.json:/opt/codapi/config.json:ro
+      - ./sandboxes/:/opt/codapi/sandboxes/:ro
+      - /tmp/codapi:/tmp/codapi
+    depends_on:
+      - impression-bus
+    networks:
+      - workbench
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      unleash:
+        condition: service_healthy
+      impression-bus:
+        condition: service_started
+      codapi-server:
+        condition: service_started
+      express-api:
+        condition: service_started
+      workshop-site:
+        condition: service_started
+    networks:
+      - workbench
+
+volumes:
+  pgdata:
+  lens-fragments:
+
+networks:
+  workbench:
+    name: workbench

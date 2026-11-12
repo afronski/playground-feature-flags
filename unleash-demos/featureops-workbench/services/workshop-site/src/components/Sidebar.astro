@@ -1,0 +1,193 @@
+---
+import MobileMenuFooter from 'virtual:starlight/components/MobileMenuFooter';
+import SidebarPersister from '@astrojs/starlight/components/SidebarPersister.astro';
+import SidebarSublist from '@astrojs/starlight/components/SidebarSublist.astro';
+
+const { sidebar, toc } = Astro.locals.starlightRoute;
+const tocItems = toc?.items ?? [];
+---
+
+<SidebarPersister>
+  <SidebarSublist sublist={sidebar} />
+</SidebarPersister>
+
+{tocItems.length > 0 && (
+  <ul class="toc-top-level top-level">
+    <li>
+      <details open id="sidebar-toc-details">
+        <summary>
+          <div class="group-label">
+            <span class="large">Sections</span>
+          </div>
+          <svg aria-hidden="true" class="caret" viewBox="0 0 24 24" fill="currentColor" style="font-size: 1.25rem; width: 1em; height: 1em;">
+            <path d="m14.83 11.29-4.24-4.24a1 1 0 1 0-1.42 1.41L12.71 12l-3.54 3.54a1 1 0 0 0 0 1.41 1 1 0 0 0 .71.29 1 1 0 0 0 .71-.29l4.24-4.24a1.002 1.002 0 0 0 0-1.42Z"/>
+          </svg>
+        </summary>
+        <ul>
+          {tocItems.map((item, i) => (
+            <li class="toc-nested-item">
+              <a href={`#${item.slug}`}>
+                <span>{i + 1}. {item.text}</span>
+              </a>
+              {item.children && item.children.length > 0 && (
+                <ul>
+                  {item.children.map((child, j) => (
+                    <li class="toc-nested-item">
+                      <a href={`#${child.slug}`}>
+                        <span>{i + 1}.{j + 1} {child.text}</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </li>
+          ))}
+        </ul>
+      </details>
+    </li>
+  </ul>
+)}
+
+<div class="md:sl-hidden">
+  <MobileMenuFooter />
+</div>
+
+<script is:inline>
+(function() {
+  var el = document.getElementById('sidebar-toc-details');
+  if (!el) return;
+  var collapsed = sessionStorage.getItem('workbench:toc-collapsed') === 'true';
+  if (collapsed) el.removeAttribute('open');
+  el.addEventListener('toggle', function() {
+    sessionStorage.setItem('workbench:toc-collapsed', el.open ? 'false' : 'true');
+  });
+
+  // Scroll-spy: deferred until DOM is fully parsed so .split-content-inner exists
+  document.addEventListener('DOMContentLoaded', function() {
+    var links = el.querySelectorAll('a[href^="#"]');
+    if (!links.length) return;
+
+    var scrollContainer = document.querySelector('.split-content-inner');
+    var threshold = 120;
+
+    function updateActive() {
+      var current = null;
+      for (var i = 0; i < links.length; i++) {
+        var id = links[i].getAttribute('href').slice(1);
+        var target = id === '_top' ? null : document.getElementById(id);
+        if (id === '_top') {
+          if (!scrollContainer || scrollContainer.scrollTop < 50) current = links[i];
+        } else if (target) {
+          var rect = target.getBoundingClientRect();
+          if (rect.top <= threshold) current = links[i];
+        }
+      }
+      for (var j = 0; j < links.length; j++) {
+        if (links[j] === current) {
+          links[j].setAttribute('aria-current', 'page');
+        } else {
+          links[j].removeAttribute('aria-current');
+        }
+      }
+    }
+
+    if (scrollContainer) {
+      scrollContainer.addEventListener('scroll', updateActive, { passive: true });
+    }
+    window.addEventListener('scroll', updateActive, { passive: true });
+    updateActive();
+  });
+})();
+</script>
+
+<style>
+  /*
+   * Replicate Starlight's SidebarSublist styles exactly.
+   * The classes below match the same selectors Starlight uses:
+   * .top-level, .large, summary, .caret, a, ul ul li
+   */
+  .toc-top-level {
+    --sl-sidebar-item-padding-inline: 0.5rem;
+    list-style: none;
+    padding: 0;
+    margin-top: 0.75rem;
+    border-top: 1px solid var(--sl-color-hairline-light);
+    padding-top: 0.5rem;
+  }
+
+  .toc-top-level li {
+    overflow-wrap: anywhere;
+  }
+
+  .toc-top-level .large {
+    font-size: var(--sl-text-lg);
+    font-weight: 600;
+    color: var(--sl-color-white);
+  }
+
+  .toc-top-level summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.2em var(--sl-sidebar-item-padding-inline);
+    line-height: 1.4;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toc-top-level summary::marker,
+  .toc-top-level summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .toc-top-level .caret {
+    transition: transform 0.2s ease-in-out;
+    flex-shrink: 0;
+  }
+
+  .toc-top-level [open] > summary .caret {
+    transform: rotateZ(90deg);
+  }
+
+  .toc-top-level ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .toc-nested-item {
+    margin-inline-start: var(--sl-sidebar-item-padding-inline);
+    border-inline-start: 1px solid var(--sl-color-hairline-light);
+    padding-inline-start: var(--sl-sidebar-item-padding-inline);
+  }
+
+  .toc-top-level a {
+    display: block;
+    border-radius: 0.25rem;
+    text-decoration: none;
+    color: var(--sl-color-gray-2);
+    padding: 0.3em var(--sl-sidebar-item-padding-inline);
+    line-height: 1.4;
+  }
+
+  .toc-top-level a:hover,
+  .toc-top-level a:focus {
+    color: var(--sl-color-white);
+  }
+
+  .toc-top-level a[aria-current='page'],
+  .toc-top-level a[aria-current='page']:hover,
+  .toc-top-level a[aria-current='page']:focus {
+    font-weight: 600;
+    color: var(--sl-color-text-invert);
+    background-color: var(--sl-color-text-accent);
+  }
+
+  @media (min-width: 50rem) {
+    .toc-top-level .large {
+      font-size: var(--sl-text-base);
+    }
+    .toc-top-level a {
+      font-size: var(--sl-text-sm);
+    }
+  }
+</style>

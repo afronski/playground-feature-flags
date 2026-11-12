@@ -1,0 +1,88 @@
+---
+title: "Wiring the App"
+description: "Edit a live Express application through a lens cell and watch feature flag changes propagate."
+---
+
+import LensCell from "@components/cells/LensCell.astro";
+import { AppPreview } from "@workbench/instruments";
+
+So far you've evaluated flags in isolated REPL cells. But in the real world, feature flags live inside applications — in route handlers, middleware, service logic.
+
+The workbench includes a live **Express API** running at [`/app/`](/app/). It's a real Node.js application with routes, middleware, and the Unleash SDK already wired up.
+
+## The App Architecture
+
+```
+express-api/
+├── src/
+│   ├── server.ts          ← Express setup, Unleash SDK init
+│   ├── routes/
+│   │   └── index.ts       ← Route handlers
+│   └── fragments/
+│       └── flag-check.ts  ← 🔍 This is what you'll edit
+```
+
+The `flag-check.ts` file is a **fragment** — a self-contained module that the app imports. It exports a `checkFlag` function that takes the Unleash client and returns the flag evaluation result.
+
+## The Lens Cell
+
+The cell below is a **lens** — it shows you a specific fragment of the Express app's source code. Unlike a REPL cell that runs in isolation, the lens lets you **edit the actual application code** and apply the change.
+
+<LensCell id="lens-flag-check" code={`import type { Unleash } from "unleash-client";
+
+export function checkFlag(unleash: Unleash) {
+  return { enabled: unleash.isEnabled("lightbulb-colour") };
+}`} />
+
+Try editing the code. For example, you could:
+
+- Add a `note` field: `return { enabled: unleash.isEnabled("lightbulb-colour"), note: "hello from the lens!" };`
+- Check a different flag name
+- Add logging: `console.log("Flag evaluated!");`
+
+When you hit **Apply**, the fragment file is replaced in the Express app's container, and the server automatically restarts (via nodemon watching the fragments directory).
+
+## See the Effect
+
+The live response from the Express API is shown below. After applying your change, hit the refresh button (or wait a few seconds for the server to restart) to see your modifications reflected:
+
+<AppPreview client:visible autoRefreshMs={5000} />
+
+## Impression Events from the App
+
+The Express app also forwards impression events to the bus — just like the REPL cells. The **probe** in the instruments panel shows events from all sources. You can see the `source` field in the event log — it will say `lens-app` for events from the Express app and `repl` for events from REPL cells.
+
+## How the Lens Works
+
+Behind the scenes:
+
+1. You edit code in the lens cell and click **Apply**.
+2. The lens sends the code to a Codapi sandbox that writes it to a **shared Docker volume**.
+3. The Express app's `src/fragments/` directory is mounted from that same volume.
+4. **Nodemon** watches the fragments directory and detects the file change.
+5. The Express server restarts with the new fragment code.
+6. The next request to `/app/` uses the updated `checkFlag` function.
+
+The surrounding application code (Express setup, middleware, Unleash SDK initialization, impression forwarding) is untouched — the lens magnifies only the fragment you're editing.
+
+## What you've learned
+
+- Feature flags in real applications are just **conditionals in your business logic** — a function that checks `isEnabled()`.
+- The **lens pattern** lets you edit a specific piece of a running application without seeing or touching the infrastructure around it.
+- **Impression events** flow from the app through the bus to probes, giving you real-time observability into flag evaluations.
+- The flag evaluation, the SDK connection, and the impression forwarding are all **independent concerns** — changing one doesn't require changing the others.
+
+## What's next?
+
+You've completed the core workbench journey:
+
+1. ✅ Set up Unleash and created a feature flag
+2. ✅ Evaluated the flag from code and observed it through a probe
+3. ✅ Wired the flag into a live application and edited it through a lens
+
+From here, you could:
+- Create **additional flags** in Unleash and experiment with different strategies (gradual rollout, user ID targeting)
+- Edit the Express app fragment to check **multiple flags** and combine their results
+- Watch the lightbulb probe react to changes in real time as you toggle flags in the Unleash UI
+
+The workbench is your sandbox. Experiment freely — `make clean` will always reset everything to a fresh start.

@@ -1,0 +1,47 @@
+---
+title: "Introduction"
+description: "What is feature flagging, why it matters, and what you'll build in this workbench."
+---
+
+Feature flags (also called feature toggles) are one of the most practical techniques in modern software delivery. At their simplest, a feature flag is a conditional that wraps a piece of functionality:
+
+```typescript
+if (isEnabled("new-checkout-flow")) {
+  renderNewCheckout();
+} else {
+  renderClassicCheckout();
+}
+```
+
+That conditional can be evaluated differently for different users, at different times, without deploying new code. This single idea unlocks a surprising number of capabilities:
+
+- **Gradual rollouts** — ship to 1% of users, then 5%, then 50%, watching metrics at each step.
+- **Kill switches** — disable a feature in production instantly, no rollback needed.
+- **A/B testing** — serve different variants to different user segments and measure the impact.
+- **Trunk-based development** — merge incomplete features behind a flag; the flag stays off until the feature is ready.
+- **Operational control** — degrade gracefully under load by disabling non-critical features.
+
+## What you'll build
+
+This workbench is a hands-on environment. Everything runs locally via Docker — you'll interact with:
+
+1. **Unleash** — an open-source feature management platform. You'll create projects, flags, and API tokens in its real admin UI.
+2. **TypeScript REPL cells** — runnable code snippets embedded in these pages. You'll connect to Unleash, evaluate flags, and see results in real time.
+3. **A live Express application** — a real Node.js app you'll modify through "lens cells" that let you edit specific fragments of its source code.
+4. **Probe instruments** — visual widgets (starting with a lightbulb) that react to flag evaluations in real time via WebSocket.
+
+By the end of Chapter 4, you'll have:
+- Created a feature flag in Unleash
+- Evaluated it from code
+- Toggled it and watched the effect propagate through the system
+- Modified a live application to change which flag it evaluates
+
+## How this workbench works
+
+Every service you see here — the documentation site, Unleash, the code execution sandbox, the example app, the real-time event bus — is running as a Docker container on your machine. They're all connected through a single reverse proxy, so everything is at `http://localhost:8080`.
+
+When you run code in a REPL cell, it executes in a sandboxed container that can reach Unleash (to evaluate flags) and the impression bus (to report events). When the lightbulb probe receives those events, it updates in real time.
+
+No cloud accounts, no API keys to manage, no external dependencies. Just Docker and Make.
+
+Let's get started. Head to the next chapter to set up Unleash.

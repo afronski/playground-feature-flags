@@ -1,0 +1,10 @@
+services:
+  sandbox-node-ts:
+    build:
+      context: ./sandboxes/node-ts
+    image: workbench-sandbox-node-ts
+
+  sandbox-node-lens:
+    build:
+      context: ./sandboxes/node-lens
+    image: workbench-sandbox-node-lens

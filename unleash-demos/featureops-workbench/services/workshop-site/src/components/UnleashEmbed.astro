@@ -1,0 +1,15 @@
+---
+interface Props {
+  height?: string;
+}
+
+const { height = "600px" } = Astro.props;
+---
+
+<iframe
+  src="/unleash/"
+  class="unleash-embed"
+  style={`min-height: ${height};`}
+  title="Unleash Admin UI"
+  loading="lazy"
+></iframe>

@@ -1,0 +1,68 @@
+---
+title: "First Flag Evaluation"
+description: "Connect to Unleash from code, evaluate a feature flag, and watch the lightbulb probe react."
+---
+
+import ReplCell from "@components/cells/ReplCell.astro";
+
+Time to connect code to Unleash. The REPL cell below runs in a sandboxed TypeScript environment that already has the Unleash SDK initialized with your API token (from the Secret Vault).
+
+## Evaluate the Flag
+
+Hit **Run** to evaluate the `lightbulb-colour` flag:
+
+<ReplCell id="repl-evaluate-flag" code={`const enabled = unleash.isEnabled("lightbulb-colour");
+console.log("Flag enabled:", enabled);`} />
+
+You should see `Flag enabled: false` — because the flag is disabled in Unleash.
+
+## The Lightbulb Probe
+
+Look at the **probe** in the instruments panel on the right. It listens for impression events on the WebSocket bus. Every time a flag is evaluated (in a REPL cell or in the Express app), an impression event is emitted. The probe filters for events matching the selected flag name and updates in real time.
+
+Right now the lightbulb is dark — the flag is off.
+
+## Toggle the Flag
+
+1. In the **Unleash admin UI** (instruments panel, right), find the `lightbulb-colour` flag.
+2. In the **development** environment, click the toggle to **enable** it.
+3. **Re-run** the REPL cell above.
+
+Now you should see:
+- `Flag enabled: true` in the output
+- The lightbulb probe **lights up** with a green glow
+- An event appears in the probe's event log
+
+## What just happened?
+
+Here's the flow:
+
+1. You ran the REPL cell → the Unleash SDK evaluated `lightbulb-colour` against the Unleash server.
+2. The SDK fired an **impression event** (a signal that says "flag X was evaluated, result was Y").
+3. The REPL template forwarded that impression event to the **impression bus** (a WebSocket relay).
+4. The **lightbulb probe** in your browser received the event via WebSocket and updated its visual state.
+
+This is the core loop of feature flag observability:
+- **Evaluate** a flag in your code
+- **Observe** the evaluation through instruments
+- **Control** the flag through the Unleash UI
+
+## Try More
+
+You can also check the flag with context. The Unleash SDK lets you pass a context object:
+
+<ReplCell id="repl-context-flag" code={`const context = { userId: "user-42", sessionId: "abc123" };
+const enabled = unleash.isEnabled("lightbulb-colour", context);
+console.log("Flag for user-42:", enabled);
+console.log("Context:", JSON.stringify(context));`} />
+
+The context doesn't change the result yet (there are no strategy constraints), but it's included in the impression event — you can see it in the probe's log.
+
+## What you've learned
+
+- The **Unleash SDK** connects to the server, fetches flag definitions, and evaluates them locally.
+- **Impression events** are emitted on every flag evaluation — they're the telemetry of feature flags.
+- The **impression bus** is a simple WebSocket relay that carries events from code to instruments.
+- **Probes** subscribe to the bus and provide real-time visual feedback.
+
+Next: we'll wire a feature flag into a real Express application.

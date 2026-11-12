@@ -1,0 +1,24 @@
+{
+  "apply": {
+    "engine": "docker",
+    "entry": "main.ts",
+    "steps": [
+      {
+        "box": "node-lens",
+        "command": ["sh", "-c", "curl -sf -X PUT -H 'Content-Type: text/plain' --data-binary @/sandbox/main.ts http://express-api:4000/api/fragments/flag-check"],
+        "timeout": 5
+      }
+    ]
+  },
+  "view": {
+    "engine": "docker",
+    "entry": "main.ts",
+    "steps": [
+      {
+        "box": "node-lens",
+        "command": ["sh", "-c", "curl -sf http://express-api:4000/api/fragments/flag-check"],
+        "timeout": 5
+      }
+    ]
+  }
+}
