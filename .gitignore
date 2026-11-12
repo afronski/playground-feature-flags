@@ -25,7 +25,7 @@ Thumbs.db
 *.tsbuildinfo
 
 # Data:
-data/*.jsonl
+unleash-demos/experiments-in-unleash/data/*.jsonl
 
 # OS
 .DS_Store

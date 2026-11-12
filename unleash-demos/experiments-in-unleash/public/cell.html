@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Cell</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* One grid cell. It loads once; the grid page then sends {type:'update', tab, userId, holdout}
+     messages and the cell re-fetches /cell.json and redraws, so refreshing never creates new
+     documents (reloading 20 iframes every few seconds made Chrome's renderer run out of memory). */
+  :root { --sans: 'DM Sans', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; }
+  body { font: 13px/1.4 var(--sans); background: #E9EFEF; color: #1A4049; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; overflow: hidden; transition: background-color .2s; }
+  .user { font: 600 10px/1.2 var(--mono); letter-spacing: 1.5px; text-transform: uppercase; opacity: .75; }
+  .headline { font-weight: 700; font-size: 16px; line-height: 1.2; }
+  table { border-collapse: collapse; font: 11px/1.45 var(--mono); margin-top: 2px; }
+  td { padding: 0 8px 0 0; white-space: nowrap; }
+  td:first-child { opacity: .7; }
+  pre { margin-top: auto; flex: none; padding: 3px 6px; border-radius: 4px; background: rgba(255,255,255,.18); border: 1px solid rgba(26,64,73,.12); }
+  pre span { font: 10px/1.4 var(--mono); white-space: pre-wrap; word-break: break-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  .alert { align-self: flex-start; background: #FFFFFF; color: #C0392B; font: 700 10px/1.4 var(--mono); padding: 2px 8px; border-radius: 4px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="user" id="user"></div>
+<div class="headline" id="headline">…</div>
+<div class="alert" id="alert" hidden></div>
+<table><tbody id="rows"></tbody></table>
+<pre id="payload" hidden><span></span></pre>
+<script>
+  // Only the demo UI (another origin, set by the app) may drive this cell.
+  const PARENT_ORIGIN = __DEMO_UI_ORIGIN__;
+  const params = new URLSearchParams(location.search);
+  let state = { tab: params.get('tab'), userId: params.get('userId'), holdout: params.get('holdout') };
+  let seq = 0;
+
+  function render(d) {
+    document.body.style.background = d.color;
+    document.body.style.color = d.text;
+    document.getElementById('user').textContent = `${d.userId} · ${d.environment}`;
+    document.getElementById('headline').textContent = d.headline;
+    const alert = document.getElementById('alert');
+    alert.hidden = !d.alert;
+    alert.textContent = d.alert ?? '';
+    const rows = document.getElementById('rows');
+    rows.replaceChildren(...d.rows.map(([k, v]) => {
+      const tr = document.createElement('tr');
+      for (const text of [k, v]) { const td = document.createElement('td'); td.textContent = text; tr.appendChild(td); }
+      return tr;
+    }));
+    const pre = document.getElementById('payload');
+    pre.hidden = !d.payload;
+    pre.firstElementChild.textContent = d.payload ? JSON.stringify(d.payload) : '';
+  }
+
+  async function update() {
+    const mine = ++seq;
+    const q = new URLSearchParams({ tab: state.tab, userId: state.userId });
+    if (['0', '1', 'true', 'false'].includes(state.holdout)) q.set('holdout', state.holdout);
+    try {
+      const d = await (await fetch(`/cell.json?${q}`, { cache: 'no-store' })).json();
+      if (mine !== seq) return; // a newer update is on its way
+      render(d);
+      if (parent !== window) parent.postMessage({ type: 'cell', userId: d.userId, tab: d.tab, holdout: d.holdout, legend: d.legend, color: d.color }, PARENT_ORIGIN);
+    } catch {
+      if (mine !== seq) return;
+      render({ userId: state.userId, environment: '', holdout: false, color: '#E9EFEF', text: '#1A4049', headline: 'App unreachable', rows: [] });
+    }
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== PARENT_ORIGIN || event.data?.type !== 'update') return;
+    state = { tab: String(event.data.tab), userId: event.data.userId, holdout: event.data.holdout ?? null };
+    update();
+  });
+
+  update();
+</script>
+</body>
+</html>

@@ -1,0 +1,31 @@
+{
+  "name": "unleash-experiments-demo",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Experiments in Unleash. Unleash Enterprise demo: gradual rollout with an experiment, mutually exclusive experiments, holdout, four-eyes approval, impression data to BigQuery.",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "node --run app & node --run demo-ui & node --run sink & wait",
+    "app": "tsx --env-file-if-exists=.env src/app.ts",
+    "demo-ui": "tsx --env-file-if-exists=.env src/demo-ui.ts",
+    "sink": "tsx --env-file-if-exists=.env src/sink.ts",
+    "provision": "tsx --env-file-if-exists=.env scripts/provision.ts",
+    "teardown": "tsx --env-file-if-exists=.env scripts/teardown.ts",
+    "bigquery:setup": "tsx --env-file-if-exists=.env scripts/bigquery-setup.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "unleash-client": "~6.12.2"
+  },
+  "devDependencies": {
+    "@types/node": "~26.6.6",
+    "tsx": "~4.23.15",
+    "typescript": "~5.9.3"
+  },
+  "optionalDependencies": {
+    "@google-cloud/bigquery": "~9.6.1"
+  }
+}

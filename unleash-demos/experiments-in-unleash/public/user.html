@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>One user · app view</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* One user as the real app sees them: served by the app (back-end SDK token only), refreshes itself. */
+  :root {
+    --bg: #E9EFEF; --surface: #FFFFFF; --surface-2: #F3F6F6; --border: #C6D2D4;
+    --text: #1A4049; --text-muted: #56717A; --text-dim: #7F959B; --rt: #1B87C9;
+    --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace; --sans: 'DM Sans', system-ui, sans-serif;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0D2329; --surface: #15343B; --surface-2: #112C32; --border: #2B4C55; --text: #E9F0F0; --text-muted: #A7B5B8; --text-dim: #7F959B; --rt: #5DB1E6; color-scheme: dark; }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.5 var(--sans); }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 32px 16px 48px; }
+  .eyebrow { font: 600 12px var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--rt); margin-bottom: 8px; }
+  h1 { font-size: 26px; line-height: 1.2; margin-bottom: 6px; }
+  .lede { color: var(--text-muted); margin-bottom: 20px; }
+  form { display: flex; flex-wrap: wrap; gap: 10px; align-items: end; margin-bottom: 16px; }
+  label { display: flex; flex-direction: column; gap: 4px; font: 11px var(--mono); color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; }
+  input, select { font: 13px var(--mono); padding: 6px 8px; border: 1px solid var(--border); border-radius: 4px; background: var(--surface); color: var(--text); }
+  input { width: 180px; }
+  .card { border: 1.5px solid var(--border); border-radius: 10px; padding: 18px 20px; box-shadow: 0 2px 6px rgba(26,64,73,.18); transition: background-color .2s; min-height: 180px; display: flex; flex-direction: column; gap: 6px; }
+  .user { font: 600 11px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; opacity: .75; }
+  .headline { font-weight: 700; font-size: 22px; line-height: 1.2; }
+  .alert { align-self: flex-start; background: #FFFFFF; color: #C0392B; font: 700 11px var(--mono); padding: 2px 8px; border-radius: 4px; }
+  table { border-collapse: collapse; font: 13px/1.6 var(--mono); }
+  td { padding: 0 14px 0 0; }
+  td:first-child { opacity: .7; }
+  pre { font: 12px/1.5 var(--mono); white-space: pre-wrap; word-break: break-all; padding: 8px 10px; border-radius: 6px; }
+  .card pre { background: rgba(255,255,255,.18); border: 1px solid rgba(26,64,73,.12); margin-top: auto; }
+  h2 { font: 600 11px var(--mono); letter-spacing: 1px; text-transform: uppercase; margin: 20px 0 6px; color: var(--text-muted); }
+  .ctx { background: var(--surface); border: 1px solid var(--border); color: var(--text); }
+  .meta { font: 11px var(--mono); color: var(--text-dim); margin-top: 8px; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">The app · back-end SDK token only</div>
+  <h1>One user, as the app sees them</h1>
+  <p class="lede">The Node.js back-end evaluates every flag for this user and sends the browser only the result. This page asks it again every 3 s, so changes in Unleash show up here too.</p>
+
+  <form id="form">
+    <label>Tab
+      <select id="tab">
+        <option value="1">1 · Rollout (development)</option>
+        <option value="2">2 · Exclusive experiments (development)</option>
+        <option value="3">3 · Holdout group (development)</option>
+        <option value="4">4 · Four-eyes approval (production)</option>
+      </select>
+    </label>
+    <label>userId <input id="userId" spellcheck="false" autocomplete="off"></label>
+    <label>holdout
+      <select id="holdout">
+        <option value="">from config/holdout.json</option>
+        <option value="false">false</option>
+        <option value="true">true</option>
+      </select>
+    </label>
+  </form>
+
+  <div class="card" id="card">
+    <div class="user" id="user"></div>
+    <div class="headline" id="headline">…</div>
+    <div class="alert" id="alert" hidden></div>
+    <table><tbody id="rows"></tbody></table>
+    <pre id="payload" hidden></pre>
+  </div>
+
+  <h2>Unleash context the back-end used</h2>
+  <pre class="ctx" id="context">…</pre>
+  <div class="meta" id="meta"></div>
+</div>
+<script>
+  const params = new URLSearchParams(location.search);
+  const $ = (id) => document.getElementById(id);
+  $('tab').value = ['1', '2', '3', '4'].includes(params.get('tab')) ? params.get('tab') : '1';
+  $('userId').value = params.get('userId') || 'user-01';
+  $('holdout').value = ['true', 'false'].includes(params.get('holdout')) ? params.get('holdout') : '';
+
+  let seq = 0;
+  function query() {
+    const q = new URLSearchParams({ tab: $('tab').value, userId: $('userId').value.trim() || 'user-01' });
+    if ($('holdout').value) q.set('holdout', $('holdout').value);
+    return q;
+  }
+  function render(d) {
+    const card = $('card');
+    card.style.background = d.color;
+    card.style.color = d.text;
+    card.style.borderColor = 'rgba(26,64,73,.35)';
+    $('user').textContent = `${d.userId} · ${d.environment} · holdout=${d.holdout} (${d.holdoutSource})`;
+    $('headline').textContent = d.headline;
+    $('alert').hidden = !d.alert;
+    $('alert').textContent = d.alert ?? '';
+    $('rows').replaceChildren(...d.rows.map(([k, v]) => {
+      const tr = document.createElement('tr');
+      for (const text of [k, v]) { const td = document.createElement('td'); td.textContent = text; tr.appendChild(td); }
+      return tr;
+    }));
+    $('payload').hidden = !d.payload;
+    $('payload').textContent = d.payload ? JSON.stringify(d.payload, null, 2) : '';
+    $('context').textContent = JSON.stringify(d.context, null, 2);
+    $('meta').textContent = `GET /cell.json?${query()} · ${new Date().toLocaleTimeString()}`;
+  }
+  async function update() {
+    const mine = ++seq;
+    const q = query();
+    history.replaceState(null, '', `?${q}`);
+    try {
+      const d = await (await fetch(`/cell.json?${q}`, { cache: 'no-store' })).json();
+      if (mine === seq) render(d);
+    } catch {
+      if (mine === seq) $('headline').textContent = 'App unreachable';
+    }
+  }
+  $('form').addEventListener('submit', (e) => { e.preventDefault(); update(); });
+  for (const id of ['tab', 'holdout', 'userId']) $(id).addEventListener('change', update);
+  update();
+  setInterval(update, 3000);
+</script>
+</body>
+</html>

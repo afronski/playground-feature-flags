@@ -1,0 +1,4 @@
+{
+  "description": "Stand-in for the data team's holdout table: these users get holdout=true in their Unleash context. They fill the bottom row of the grid, so the 20 users above stay eligible and the expected counts stay whole. The page can add or remove users live.",
+  "users": ["user-21", "user-22", "user-23", "user-24", "user-25"]
+}
