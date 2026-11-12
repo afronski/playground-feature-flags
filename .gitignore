@@ -24,6 +24,9 @@ Thumbs.db
 *.log
 *.tsbuildinfo
 
+# Data:
+data/*.jsonl
+
 # OS
 .DS_Store
 Thumbs.db
